@@ -4,9 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: '📊', end: true },
-  { to: '/admin/assessments', label: 'Assessments', icon: '📋' },
-  { to: '/admin/assessments/create', label: 'Create Assessment', icon: '➕' },
-  { to: '/admin/results', label: 'Results', icon: '🏆' },
+  { to: '/admin/assessments', label: 'Assessments', icon: '📋', end: true },
+  { to: '/admin/assessments/create', label: 'Create Assessment', icon: '➕', end: true },
+  { to: '/admin/results', label: 'Results', icon: '🏆', end: true },
 ];
 
 export default function AdminLayout() {
@@ -37,6 +37,7 @@ export default function AdminLayout() {
           <button
             className="sidebar-close"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
           >
             ✕
           </button>
@@ -44,11 +45,13 @@ export default function AdminLayout() {
 
         <div className="sidebar-user">
           <div className="user-avatar">
-            {user?.email?.charAt(0).toUpperCase()}
+            {user?.email?.charAt(0).toUpperCase() || 'A'}
           </div>
           <div className="user-info">
             <span className="user-name">Admin</span>
-            <span className="user-email-sm">{user?.email}</span>
+            <span className="user-email-sm" title={user?.email}>
+              {user?.email}
+            </span>
           </div>
         </div>
 
@@ -91,7 +94,12 @@ export default function AdminLayout() {
           >
             ☰
           </button>
-          <h1 className="topbar-title">Admin Panel</h1>
+          <div className="topbar-left">
+            <h1 className="topbar-title">Admin Management Panel</h1>
+          </div>
+          <div className="topbar-right">
+            <span className="admin-badge font-mono">ADMIN</span>
+          </div>
         </header>
         <main className="admin-main">
           <Outlet />

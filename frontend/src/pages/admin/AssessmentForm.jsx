@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/axios';
+import BulkImportModal from '../../components/BulkImportModal';
 
 const defaultQuestion = () => ({
   id: Date.now() + Math.random(),
@@ -23,6 +24,9 @@ export default function AssessmentForm({ editMode = false }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Bulk import modal state
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
   useEffect(() => {
     if (editMode && id) {
       loadAssessment();
@@ -37,7 +41,7 @@ export default function AssessmentForm({ editMode = false }) {
       setDescription(a.description || '');
       setQuestions(
         a.questions.map((q) => ({
-          id: q._id,
+          id: q._id || Date.now() + Math.random(),
           question: q.question,
           type: q.type,
           options: q.options?.length ? q.options : ['', '', '', ''],
@@ -101,11 +105,34 @@ export default function AssessmentForm({ editMode = false }) {
   const removeOption = (qIdx, oIdx) => {
     const updated = [...questions];
     const opts = updated[qIdx].options.filter((_, i) => i !== oIdx);
-    // Clear correct answer if removed option was selected
-    const newCorrect = updated[qIdx].correctAnswer === updated[qIdx].options[oIdx]
-      ? '' : updated[qIdx].correctAnswer;
+    const newCorrect =
+      updated[qIdx].correctAnswer === updated[qIdx].options[oIdx]
+        ? ''
+        : updated[qIdx].correctAnswer;
     updated[qIdx] = { ...updated[qIdx], options: opts, correctAnswer: newCorrect };
     setQuestions(updated);
+  };
+
+  // Bulk import handler
+  const handleBulkImport = (importedQuestions) => {
+    const formatted = importedQuestions.map((iq) => ({
+      id: Date.now() + Math.random(),
+      question: iq.question,
+      type: iq.type,
+      options: iq.type === 'mcq' ? iq.options : ['', '', '', ''],
+      correctAnswer: iq.correctAnswer,
+      marks: Number(iq.marks) || 1,
+    }));
+
+    // If existing questions list is just 1 empty question, replace it
+    if (questions.length === 1 && !questions[0].question.trim()) {
+      setQuestions(formatted);
+    } else {
+      setQuestions([...questions, ...formatted]);
+    }
+
+    setSuccess(`Successfully imported ${formatted.length} questions!`);
+    setTimeout(() => setSuccess(''), 4000);
   };
 
   const handleSubmit = async (e) => {
@@ -114,7 +141,6 @@ export default function AssessmentForm({ editMode = false }) {
     setSuccess('');
     setLoading(true);
 
-    // Validate
     if (!name.trim()) {
       setError('Assessment name is required.');
       setLoading(false);
@@ -141,7 +167,7 @@ export default function AssessmentForm({ editMode = false }) {
           return;
         }
       }
-      if (!q.marks || Number(q.marks) < 0) {
+      if (q.marks === '' || q.marks === undefined || Number(q.marks) < 0) {
         setError(`Question ${i + 1}: Marks must be 0 or greater.`);
         setLoading(false);
         return;
@@ -185,15 +211,23 @@ export default function AssessmentForm({ editMode = false }) {
       <div className="page-header">
         <div>
           <h2>{editMode ? 'Edit Assessment' : 'Create Assessment'}</h2>
-          <p>{editMode ? 'Update the assessment details and questions' : 'Build a new assessment'}</p>
+          <p>{editMode ? 'Update assessment details and questions' : 'Build a new assessment or import questions from Excel'}</p>
         </div>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => setImportModalOpen(true)}
+          id="top-import-btn"
+        >
+          📦 Import Questions (Excel / CSV)
+        </button>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       <form onSubmit={handleSubmit} id="assessment-builder-form">
-        {/* Assessment info */}
+        {/* Assessment Details */}
         <div className="form-card">
           <h3 className="form-card-title">Assessment Details</h3>
           <div className="form-group">
@@ -217,8 +251,13 @@ export default function AssessmentForm({ editMode = false }) {
               placeholder="Brief description of this assessment..."
             />
           </div>
-          <div className="total-marks-display">
-            Total Marks: <strong>{totalMarks}</strong>
+          <div className="details-card-footer">
+            <div className="total-marks-display">
+              Total Marks: <strong>{totalMarks}</strong>
+            </div>
+            <div className="questions-count-display">
+              Total Questions: <strong>{questions.length}</strong>
+            </div>
           </div>
         </div>
 
@@ -337,14 +376,25 @@ export default function AssessmentForm({ editMode = false }) {
           </div>
         ))}
 
-        <button
-          type="button"
-          id="add-question-btn"
-          className="btn-secondary add-question-btn"
-          onClick={addQuestion}
-        >
-          + Add Question
-        </button>
+        {/* Action controls for adding questions */}
+        <div className="add-questions-action-bar">
+          <button
+            type="button"
+            id="add-question-btn"
+            className="btn-secondary"
+            onClick={addQuestion}
+          >
+            + Add Question Manually
+          </button>
+          <button
+            type="button"
+            id="bottom-import-btn"
+            className="btn-secondary"
+            onClick={() => setImportModalOpen(true)}
+          >
+            📦 Import Questions (Excel / CSV)
+          </button>
+        </div>
 
         <div className="form-actions">
           <button
@@ -357,13 +407,20 @@ export default function AssessmentForm({ editMode = false }) {
           <button
             type="submit"
             id="save-assessment-btn"
-            className="btn-primary"
+            className="btn-primary btn-lg"
             disabled={loading}
           >
             {loading ? <span className="btn-spinner" /> : editMode ? 'Update Assessment' : 'Save Assessment'}
           </button>
         </div>
       </form>
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={handleBulkImport}
+      />
     </div>
   );
 }

@@ -41,7 +41,9 @@ export default function AdminAssessments() {
 
   const formatDate = (date) =>
     new Date(date).toLocaleDateString('en-IN', {
-      day: '2-digit', month: 'short', year: 'numeric',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
     });
 
   if (loading) return <div className="center-content"><div className="spinner large" /></div>;
@@ -51,7 +53,7 @@ export default function AdminAssessments() {
       <div className="page-header">
         <div>
           <h2>Assessments</h2>
-          <p>Manage all assessments</p>
+          <p>Create, edit, and manage all student assessments</p>
         </div>
         <button
           id="create-assessment-btn"
@@ -67,13 +69,13 @@ export default function AdminAssessments() {
       {assessments.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📋</div>
-          <h3>No assessments yet</h3>
-          <p>Create your first assessment to get started.</p>
+          <h3>No assessments created yet</h3>
+          <p>Create your first assessment to make it available for students.</p>
           <button
             className="btn-primary"
             onClick={() => navigate('/admin/assessments/create')}
           >
-            Create Assessment
+            + Create Assessment
           </button>
         </div>
       ) : (
@@ -81,43 +83,46 @@ export default function AdminAssessments() {
           {assessments.map((a) => (
             <div key={a._id} className="admin-assessment-card">
               <div className="card-body">
-                <h3 className="card-title">{a.name}</h3>
-                {a.description && (
-                  <p className="card-description">{a.description}</p>
-                )}
+                <div className="card-top-row">
+                  <h3 className="card-title">{a.name}</h3>
+                  <span className="date-badge">📅 {formatDate(a.createdAt)}</span>
+                </div>
+
+                <p className="card-description">
+                  {a.description || 'No description provided.'}
+                </p>
+
                 <div className="card-meta">
                   <span className="meta-badge">
-                    📝 {a.questions?.length || 0} Questions
+                    📝 {a.questions?.length || 0} Question{a.questions?.length !== 1 ? 's' : ''}
                   </span>
                   <span className="meta-badge">
                     ⭐ {a.totalMarks} Marks
                   </span>
-                  <span className="meta-badge">
-                    📅 {formatDate(a.createdAt)}
-                  </span>
                 </div>
               </div>
+
               <div className="card-actions">
                 <button
                   className="btn-ghost btn-sm"
                   onClick={() => navigate(`/admin/assessments/${a._id}`)}
                   id={`view-${a._id}`}
                 >
-                  View
+                  👁️ View
                 </button>
                 <button
                   className="btn-secondary btn-sm"
                   onClick={() => navigate(`/admin/assessments/${a._id}/edit`)}
                   id={`edit-${a._id}`}
                 >
-                  Edit
+                  ✏️ Edit
                 </button>
                 <button
-                  className="btn-danger btn-sm"
+                  className="btn-danger-light btn-sm"
                   onClick={() => setDeleteId(a._id)}
                   id={`delete-${a._id}`}
                 >
-                  Delete
+                  🗑️ Delete
                 </button>
               </div>
             </div>
@@ -130,7 +135,7 @@ export default function AdminAssessments() {
         <div className="modal-overlay" onClick={() => setDeleteId(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>Delete Assessment?</h3>
-            <p>This will permanently delete the assessment and all its submissions. This action cannot be undone.</p>
+            <p>This will permanently delete the assessment and all student submissions recorded for it. This action cannot be undone.</p>
             <div className="modal-actions">
               <button
                 className="btn-ghost"
