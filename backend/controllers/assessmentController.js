@@ -112,6 +112,28 @@ export const submitAssessment = async (req, res) => {
       return res.status(404).json({ message: 'Assessment not found' });
     }
 
+    // MANDATORY QUESTIONS BACKEND VALIDATION
+    // Check every question in the MongoDB assessment to ensure an answer exists and is non-empty
+    const unansweredIndices = [];
+
+    assessment.questions.forEach((question, index) => {
+      const studentAnswer = answers.find(
+        (a) => a.questionId === question._id.toString()
+      );
+      const givenAnswer = studentAnswer ? String(studentAnswer.answer || '').trim() : '';
+
+      if (!givenAnswer) {
+        unansweredIndices.push(index + 1); // 1-indexed question number
+      }
+    });
+
+    if (unansweredIndices.length > 0) {
+      return res.status(400).json({
+        message: 'Please answer all questions before submitting.',
+        unansweredQuestions: unansweredIndices,
+      });
+    }
+
     let automaticMarks = 0;
     let hasInputQuestions = false;
     const processedAnswers = [];
@@ -120,7 +142,7 @@ export const submitAssessment = async (req, res) => {
       const studentAnswer = answers.find(
         (a) => a.questionId === question._id.toString()
       );
-      const givenAnswer = studentAnswer ? studentAnswer.answer : '';
+      const givenAnswer = studentAnswer ? String(studentAnswer.answer || '').trim() : '';
 
       let marksObtained = 0;
       let isEvaluated = false;
@@ -129,7 +151,7 @@ export const submitAssessment = async (req, res) => {
         isEvaluated = true;
         if (
           givenAnswer &&
-          givenAnswer.trim().toLowerCase() === question.correctAnswer?.trim().toLowerCase()
+          givenAnswer.toLowerCase() === question.correctAnswer?.trim().toLowerCase()
         ) {
           marksObtained = question.marks;
           automaticMarks += marksObtained;
